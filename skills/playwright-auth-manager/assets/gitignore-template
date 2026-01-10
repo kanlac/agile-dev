@@ -1,0 +1,19 @@
+# Playwright Authentication Files
+# Add these lines to your .gitignore to prevent committing sensitive auth data
+
+# Auth state JSON files
+*.auth.json
+auth.json
+
+# Auth directories
+.playwright-auth/
+playwright-auth/
+
+# User data directories
+playwright-profile/
+.playwright-user-data/
+playwright-user-data/
+
+# Playwright session outputs
+playwright-output/
+.playwright-output/

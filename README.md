@@ -1,190 +1,581 @@
-# dev-cycle
+# dev-cycle Plugin
 
-一个自动化的开发-验收反馈循环系统，通过持续迭代确保开发工作满足需求标准。
+> Automated development-evaluation feedback loop system for Claude Code
 
-## 简介
+## Overview
 
-dev-cycle 是一个 Claude Code 插件,通过两个专门的 AI agent（developer 和 evaluator）协同工作，建立起一个自动化的开发反馈循环。它能够：
+The `dev-cycle` plugin establishes an autonomous development workflow where two specialized agents (developer and evaluator) iterate continuously until all acceptance criteria are met. Think of it as having an AI pair programming partner with built-in QA review.
 
-- 自动执行开发任务
-- 对开发结果进行客观验收测试
-- 根据验收反馈持续迭代改进
-- 记录完整的开发和验收过程
+**Key Benefits:**
+- Clear requirements with measurable acceptance criteria
+- Automated iteration until quality standards are met
+- Complete audit trail of development decisions
+- Systematic testing and validation
+- Reduced back-and-forth by automating the feedback loop
 
-## 核心价值
-
-- **自动化迭代**：无需人工干预，自动完成多轮开发-验收循环
-- **质量保障**：通过明确的验收标准确保交付质量
-- **过程透明**：完整记录每一轮的工作报告和验收报告，可追溯
-- **需求驱动**：强制要求明确的验收标准，避免需求不清晰
-
-## 架构
+## How It Works
 
 ```
-用户
-  │
-  ├─> /task-init  创建任务和需求文档
-  │       ↓
-  │   requirement.md
-  │
-  └─> /task-run   启动自动化循环
-          │
-          ├─> developer agent   执行开发工作
-          │       ↓
-          │   work-report.md    工作报告
-          │       ↓
-          ├─> evaluator agent   执行验收测试
-          │       ↓
-          │   eval-report.md    验收报告
-          │       ↓
-          └─> 判断结果
-                  ├─> 通过 → 结束
-                  └─> 未通过 → 继续下一轮（最多 20 轮）
+┌──────────────┐
+│ 1. /task-init│  → Create task with requirements and acceptance criteria
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│  requirement │  → Clear specification of what needs to be built
+│     .md      │     and how success is measured
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ 2. /task-run │  → Start automated feedback loop
+└──────┬───────┘
+       │
+       ▼
+    ┌──────────────────────────────────┐
+    │   FEEDBACK LOOP (max 20 cycles)  │
+    │                                   │
+    │  🔵 Developer Agent               │
+    │    ├─ Read requirements          │
+    │    ├─ Read previous feedback     │
+    │    ├─ Implement/fix features     │
+    │    └─ Generate work report       │
+    │                                   │
+    │  🟢 Evaluator Agent               │
+    │    ├─ Read requirements          │
+    │    ├─ Read work report           │
+    │    ├─ Run tests                  │
+    │    ├─ Verify functionality       │
+    │    └─ Generate evaluation report │
+    │                                   │
+    │  Decision:                        │
+    │    ├─ ✅ PASSED → Exit (success) │
+    │    └─ ❌ FAILED → Next iteration │
+    └──────────────────────────────────┘
+       │
+       ▼
+┌──────────────┐
+│ 🎉 Complete  │  → All acceptance criteria met
+└──────────────┘     Tests passing
+                     Ready for delivery
 ```
 
-## 安装
+## Architecture
 
-1. 确保已安装 Claude Code CLI
-2. 克隆或复制此插件到 Claude Code 插件目录：
+### Components
+
+1. **`/task-init`** - Slash command to create tasks
+   - Creates `docs/{task-name}/` directory
+   - Guides interactive requirements gathering
+   - Generates `requirement.md` with acceptance criteria
+
+2. **`/task-run`** - Slash command to execute feedback loop
+   - Orchestrates developer and evaluator agents
+   - Manages up to 20 iterations
+   - Tracks progress and reports results
+
+3. **developer** - Subagent for implementation
+   - Reads requirements and feedback
+   - Implements features and fixes bugs
+   - Generates detailed work reports
+
+4. **evaluator** - Subagent for verification
+   - Tests against acceptance criteria
+   - Runs automated/manual tests
+   - Generates pass/fail evaluation reports
+
+### File Structure
+
+```
+docs/
+└── {task-name}/
+    ├── requirement.md                          # Requirements and acceptance criteria
+    ├── 260110143 0-work-report-sonnet.md       # Iteration 1: Developer's work
+    ├── 260110144 5-eval-report-sonnet.md       # Iteration 1: Evaluation results
+    ├── 260110150 0-work-report-sonnet.md       # Iteration 2: Developer's fixes
+    ├── 260110151 5-eval-report-sonnet.md       # Iteration 2: Evaluation results
+    └── ...                                     # Additional iterations as needed
+```
+
+## Installation
+
+### Option 1: Local Plugin (Recommended for Development)
+
 ```bash
-# 复制到 Claude Code 插件目录
-cp -r dev-cycle ~/.claude/plugins/
+# Clone or create the plugin in your project
+mkdir -p .claude/plugins/dev-cycle
+cd .claude/plugins/dev-cycle
+
+# Copy the plugin files
+cp -r /path/to/dev-cycle-plugin/* .
+
+# Enable the plugin in Claude Code settings
 ```
 
-3. 重启 Claude Code 或重新加载插件
-
-## 使用方法
-
-### 第一步：创建任务和需求文档
-
-使用 `/task-init` 命令创建新任务：
+### Option 2: Symlink (For Development)
 
 ```bash
+# Create symlink from your development location
+ln -s /path/to/dev-cycle-plugin ~/.claude/plugins/dev-cycle
+```
+
+### Verify Installation
+
+```bash
+# In Claude Code, check available commands
+/help
+
+# You should see:
+# - /task-init
+# - /task-run
+```
+
+## Usage
+
+### Quick Start
+
+```bash
+# 1. Create a new task with requirements
 /task-init user-authentication
+
+# Claude will interactively ask you:
+# - What's the goal?
+# - What technology stack?
+# - What are the acceptance criteria?
+
+# 2. Start the automated development cycle
+/task-run user-authentication
+
+# Claude will now iterate automatically until:
+# - All acceptance criteria pass (✅ success)
+# - OR 20 iterations reached (⚠️ timeout)
 ```
 
-该命令会：
-1. 创建任务目录 `docs/user-authentication/`
-2. 通过交互式对话收集需求信息
-3. 生成 `requirement.md` 需求文档
+### Detailed Workflow
 
-**重要**：必须明确定义验收标准，例如：
-- Playwright 测试用例
-- API 接口测试步骤
-- 单元测试要求
-- 手动验证清单
-
-### 第二步：启动自动化开发循环
+#### Step 1: Initialize Task
 
 ```bash
-/task-run user-authentication
+/task-init my-feature
 ```
 
-该命令会自动：
-1. 读取需求文档
-2. 启动 developer agent 执行开发
-3. 启动 evaluator agent 进行验收
-4. 根据验收结果决定是否继续迭代
-5. 最多迭代 20 轮，直到通过或达到上限
+Claude will guide you through:
 
-## 工作流程示例
+1. **Core Goals**
+   - What problem are you solving?
+   - Who is this for?
 
+2. **Technical Details**
+   - What languages/frameworks?
+   - Any integrations needed?
+   - Existing code to modify?
+
+3. **Acceptance Criteria** (Most Important!)
+   - How will you know it's done?
+   - What tests must pass?
+   - What functionality must work?
+
+**Example Acceptance Criteria:**
+
+Good (Specific and Testable):
 ```
-第 1 轮:
-  → developer 执行开发，生成 202501101430-work-report-sonnet.md
-  → evaluator 执行验收，生成 202501101445-eval-report-sonnet.md
-  → 结果: ❌ 未通过 (测试失败)
-
-第 2 轮:
-  → developer 根据验收反馈修复问题
-  → evaluator 重新验收
-  → 结果: ❌ 未通过 (部分功能缺失)
-
-第 3 轮:
-  → developer 补充缺失功能
-  → evaluator 最终验收
-  → 结果: ✅ 通过
-
-任务完成！总共迭代 3 轮
-```
-
-## 输出文件结构
-
-每个任务会在 `docs/{task-name}/` 目录下生成以下文件：
-
-```
-docs/user-authentication/
-├── requirement.md                       # 需求文档（手动创建）
-├── 202501101430-work-report-sonnet.md  # 第 1 轮工作报告
-├── 202501101445-eval-report-sonnet.md  # 第 1 轮验收报告
-├── 202501101500-work-report-sonnet.md  # 第 2 轮工作报告
-├── 202501101515-eval-report-sonnet.md  # 第 2 轮验收报告
-└── ...
+- [ ] User can login with email/password
+- [ ] JWT token is returned on successful login
+- [ ] All tests pass: npm test auth
+- [ ] Protected routes redirect when not authenticated
+- [ ] No console errors during auth flow
 ```
 
-文件命名格式：`{yyMMddHHmm}-{report-type}-{model}.md`
+Bad (Vague):
+```
+- [ ] Authentication works
+- [ ] It should be secure
+- [ ] Tests should pass
+```
 
-## Agent 说明
+#### Step 2: Run Development Cycle
 
-### Developer Agent
-- **职责**：执行开发任务（编码、测试、调试）
-- **输入**：需求文档 + 上一轮的验收报告（如有）
-- **输出**：工作报告，记录完成的工作和遇到的问题
-- **原则**：专注完成需求，编写可验证的代码
+```bash
+/task-run my-feature
+```
 
-### Evaluator Agent
-- **职责**：执行验收测试，客观评估开发成果
-- **输入**：需求文档 + 最新的工作报告
-- **输出**：验收报告，明确标注通过/未通过
-- **原则**：只验收不开发，测试失败即停止
+Claude will:
+1. Display your requirements
+2. Start iteration 1
+3. Launch developer agent to implement
+4. Launch evaluator agent to test
+5. Show results
+6. Continue iterating if needed
 
-## 配置选项
+**You don't need to do anything** - just wait for results!
 
-可以在插件中修改以下参数（在 `/task-run` 命令文件中）：
+#### Step 3: Review Results
+
+**If successful (✅ PASSED):**
+```
+🎉 TASK COMPLETE - ALL ACCEPTANCE CRITERIA MET
+
+Task: my-feature
+Total iterations: 3
+Final status: ✅ PASSED
+
+All reports saved in: docs/my-feature/
+```
+
+**If max iterations reached (⚠️ FAILED):**
+```
+⚠️  MAXIMUM ITERATIONS REACHED
+
+Task: my-feature
+Total iterations: 20
+Final status: ❌ FAILED
+
+Review the reports to understand what's blocking completion.
+```
+
+You can then:
+- Review evaluation reports to see what's failing
+- Manually fix blockers
+- Run `/task-run my-feature` again to continue
+
+## Configuration
+
+### Maximum Iterations
+
+Default: 20 iterations
+
+To change, edit `.claude/plugins/dev-cycle/commands/task-run.md`:
 
 ```javascript
-const MAX_ITERATIONS = 20;        // 最大循环次数
-const TASK_BASE_DIR = 'docs';     // 任务目录根路径
-const DEFAULT_MODEL = 'sonnet';   // 默认模型
+const MAX_ITERATIONS = 30;  // Increase if needed
 ```
 
-## 最佳实践
+### Task Directory
 
-1. **明确验收标准**：在 requirement.md 中清晰定义可执行的验收标准
-2. **合理拆分任务**：复杂功能建议拆分成多个独立任务
-3. **定期检查报告**：查看历史报告了解迭代过程
-4. **控制任务规模**：避免单个任务过大导致难以收敛
+Default: `docs/`
 
-## 注意事项
+To change, edit `.claude/plugins/dev-cycle/commands/task-run.md`:
 
-- 每个任务最多迭代 20 轮，超过上限会自动终止
-- 验收标准必须可执行和可测试
-- 所有报告以 Markdown 格式存储，便于版本控制
-- 建议将 `docs/` 目录纳入 git 管理
+```javascript
+const TASK_BASE_DIR = 'tasks';  // Use different directory
+```
 
-## 适用场景
+### Agent Models
 
-- 功能开发：实现新功能并通过测试
-- Bug 修复：修复问题直到测试通过
-- 重构任务：重构代码并确保功能不变
-- 技术探索：尝试不同实现方案直到满足要求
+Default: Both agents use `sonnet`
 
-## 未来计划
+To use different models, edit the agent frontmatter in:
+- `.claude/plugins/dev-cycle/agents/developer.md`
+- `.claude/plugins/dev-cycle/agents/evaluator.md`
 
-- [ ] 支持多模型配置（developer 和 evaluator 使用不同模型）
-- [ ] 并行任务管理
-- [ ] HTML 格式的可视化报告
-- [ ] 中断和恢复机制
+```yaml
+---
+name: developer
+model: opus  # Change to opus, haiku, etc.
+---
+```
 
-## 许可证
+## Examples
+
+### Example 1: API Endpoint with Tests
+
+```bash
+/task-init payment-api
+
+# Claude asks questions, you respond:
+# Goal: Add a payment processing API endpoint
+# Stack: Node.js, Express, Stripe API
+# Tests: Jest unit tests
+# Acceptance:
+#   - POST /api/payment endpoint works
+#   - Stripe integration processes payments
+#   - All tests pass: npm test payment
+#   - Error handling returns 400/500 appropriately
+
+/task-run payment-api
+
+# Claude iterates until all tests pass
+```
+
+### Example 2: UI Component with Manual Testing
+
+```bash
+/task-init dark-mode-toggle
+
+# Goal: Add dark mode toggle to settings page
+# Stack: React, CSS variables
+# Acceptance:
+#   - Toggle button appears in settings
+#   - Clicking toggles between light/dark
+#   - Preference persists in localStorage
+#   - No visual glitches during transition
+
+/task-run dark-mode-toggle
+
+# Claude builds, evaluator manually tests each criterion
+```
+
+### Example 3: Bug Fix with Regression Tests
+
+```bash
+/task-init fix-memory-leak
+
+# Goal: Fix memory leak in WebSocket connection
+# Stack: JavaScript, WebSocket API
+# Acceptance:
+#   - Memory usage stays stable over 1 hour
+#   - WebSocket cleanup happens on disconnect
+#   - Existing tests still pass: npm test
+#   - Chrome DevTools shows no detached listeners
+
+/task-run fix-memory-leak
+
+# Claude fixes, evaluator verifies with profiling
+```
+
+## Best Practices
+
+### Writing Good Acceptance Criteria
+
+✅ **DO:**
+- Be specific and measurable
+- Include test commands that can be run
+- List exact functionality that must work
+- Specify expected behavior for edge cases
+- Include quality standards (no errors, performance)
+
+❌ **DON'T:**
+- Use vague terms like "works well" or "is good"
+- Skip testing requirements
+- Assume "common sense" - be explicit
+- Mix implementation details with outcomes
+
+### When to Use dev-cycle
+
+**Good use cases:**
+- New features with clear requirements
+- Bug fixes that need verification
+- Refactoring with test coverage
+- Features requiring iteration to get right
+
+**Not ideal for:**
+- Exploratory coding without clear goals
+- Quick one-off scripts
+- Tasks without testable outcomes
+- Open-ended research
+
+### Managing Long-Running Tasks
+
+If a task hits 20 iterations without completing:
+
+1. **Review the latest evaluation report**
+   ```bash
+   # Find the latest eval report
+   ls -t docs/{task-name}/*-eval-report-*.md | head -1
+
+   # Read it
+   cat docs/{task-name}/260110160 0-eval-report-sonnet.md
+   ```
+
+2. **Identify blockers**
+   - Are acceptance criteria too strict?
+   - Is there a fundamental architectural issue?
+   - Are tests flaky or environment-dependent?
+
+3. **Intervene manually**
+   - Fix critical blockers yourself
+   - Adjust acceptance criteria if unrealistic
+   - Update requirements if scope changed
+
+4. **Resume the cycle**
+   ```bash
+   /task-run {task-name}  # Continues where it left off
+   ```
+
+## Troubleshooting
+
+### Issue: Task directory not found
+
+```
+❌ Task directory not found: docs/{task-name}/
+```
+
+**Solution:** Run `/task-init {task-name}` first to create the task.
+
+### Issue: No requirement document
+
+```
+❌ Requirement document missing
+```
+
+**Solution:** The task directory exists but has no `requirement.md`. Run `/task-init {task-name}` to create it.
+
+### Issue: Agent doesn't generate report
+
+```
+❌ Expected report file not found
+```
+
+**Solution:** This is a plugin bug. Check:
+- Agent file exists in `agents/` directory
+- Agent has proper frontmatter
+- Agent instructions include report generation
+
+### Issue: Infinite loop - keeps failing
+
+**Symptoms:** Task fails every iteration with same error
+
+**Solutions:**
+1. Review evaluation report for root cause
+2. Check if acceptance criteria are achievable
+3. Verify test commands actually work
+4. Look for environment issues (missing dependencies, etc.)
+5. Manually fix the blocking issue
+6. Update requirements if needed
+
+### Issue: Evaluation always passes too easily
+
+**Symptoms:** Evaluator marks work as passed when it shouldn't
+
+**Solutions:**
+1. Review acceptance criteria - are they specific enough?
+2. Add explicit test commands to run
+3. Include negative test cases
+4. Specify quality thresholds (performance, error rates)
+
+### Issue: Development is too slow
+
+**Symptoms:** Each iteration takes a long time
+
+**Solutions:**
+1. Break task into smaller sub-tasks
+2. Use more focused acceptance criteria
+3. Consider using faster model (haiku) for simpler tasks
+4. Reduce scope of the task
+
+## Advanced Usage
+
+### Custom Testing Strategies
+
+#### Playwright E2E Testing
+
+```markdown
+## Acceptance Criteria
+
+- [ ] All Playwright tests pass: `npx playwright test`
+- [ ] User flow "login → dashboard → logout" works
+- [ ] No console errors in browser
+```
+
+The evaluator will use Playwright MCP to run browser tests.
+
+#### API Testing
+
+```markdown
+## Acceptance Criteria
+
+- [ ] GET /api/users returns 200
+- [ ] POST /api/users creates user and returns 201
+- [ ] Invalid input returns 400 with error message
+- [ ] All API tests pass: `npm run test:api`
+```
+
+The evaluator will use curl or test frameworks to verify endpoints.
+
+#### Performance Testing
+
+```markdown
+## Acceptance Criteria
+
+- [ ] Page load time < 2 seconds
+- [ ] API response time < 200ms
+- [ ] Lighthouse performance score > 90
+- [ ] No memory leaks after 1 hour usage
+```
+
+The evaluator will use performance profiling tools.
+
+### Multi-Task Workflows
+
+You can run multiple tasks in parallel:
+
+```bash
+# Terminal 1
+/task-run feature-a
+
+# Terminal 2
+/task-run feature-b
+```
+
+Each task maintains independent state in its own directory.
+
+### Resuming After Manual Changes
+
+If you manually edit code during a cycle:
+
+```bash
+# The next iteration will pick up your changes
+/task-run {task-name}  # Developer sees your edits
+```
+
+The developer agent will see your changes in the codebase and build on them.
+
+## FAQ
+
+**Q: How many iterations typically needed?**
+A: Most tasks complete in 2-5 iterations. Simple tasks may complete in 1 iteration. Complex tasks might need 10-15.
+
+**Q: Can I stop the cycle mid-iteration?**
+A: Yes, use Ctrl+C to interrupt. Reports generated so far are saved. Resume with `/task-run {task-name}`.
+
+**Q: Can I modify requirements after starting?**
+A: Yes, edit `docs/{task-name}/requirement.md` and run `/task-run {task-name}` again. The developer will see the updated requirements.
+
+**Q: What models can I use?**
+A: Sonnet (default, good balance), Opus (highest quality, slower), Haiku (fast, lower cost). Configure in agent frontmatter.
+
+**Q: Does this work with any programming language?**
+A: Yes, the plugin is language-agnostic. Specify your tech stack in requirements.
+
+**Q: Can the evaluator write code?**
+A: No, the evaluator is explicitly instructed to only test and verify, never to modify code.
+
+**Q: What if I disagree with the evaluation?**
+A: Review the eval report in `docs/{task-name}/`, update acceptance criteria if needed, and re-run the task.
+
+## Contributing
+
+This plugin is designed to be extended. You can:
+
+1. **Add new agent types**
+   - Create new `.md` files in `agents/`
+   - Define specialized roles (e.g., security-reviewer, performance-optimizer)
+
+2. **Customize commands**
+   - Edit command files in `commands/`
+   - Add new workflows beyond dev-eval loop
+
+3. **Integrate tools**
+   - Add MCP servers for specialized testing
+   - Connect to CI/CD systems
+   - Integrate project management tools
+
+## License
 
 MIT
 
-## 贡献
+## Version
 
-欢迎提交 Issue 和 Pull Request！
+1.0.0
+
+## Support
+
+For issues, questions, or feedback:
+- Check this README
+- Review example tasks in `docs/`
+- Examine evaluation reports for debugging
+- Modify plugin files to suit your workflow
 
 ---
 
-**版本**：1.0.0
-**创建日期**：2026-01-10
+**Happy iterating! Let the agents handle the feedback loop. 🔄**
