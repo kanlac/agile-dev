@@ -140,22 +140,22 @@ When authentication expires:
 2. Restart MCP server (if not using `--save-session`)
 3. New authentication loaded automatically
 
-### Dynamic Authentication Switching (Advanced)
+### Dynamic Session Switching (Advanced)
 
-For scenarios requiring runtime user switching without multiple MCP instances:
+For scenarios requiring runtime session switching without multiple MCP instances:
 
 ```javascript
 await browser_run_code({
   code: `async (page) => {
     const fs = require('fs');
     const authState = JSON.parse(
-      fs.readFileSync('/path/to/user2-auth.json', 'utf8')
+      fs.readFileSync('/path/to/session2-auth.json', 'utf8')
     );
 
     // Clear current cookies
     await page.context().clearCookies();
 
-    // Load new user's cookies
+    // Load new session's cookies
     await page.context().addCookies(authState.cookies);
 
     // Load localStorage for each origin
@@ -170,7 +170,7 @@ await browser_run_code({
       }
     }
 
-    return 'Authentication switched';
+    return 'Authentication switched to new session';
   }`
 });
 
@@ -209,9 +209,9 @@ Store auth files in a secure, centralized location:
 
 ```
 ~/.playwright-auth/
-├── project1-admin.json
-├── project1-user.json
-└── project2-user.json
+├── project1-session1.json
+├── project1-session2.json
+└── project2-session1.json
 ```
 
 Reference with absolute paths or environment variables:
@@ -220,7 +220,7 @@ Reference with absolute paths or environment variables:
 {
   "args": [
     "@playwright/mcp@latest",
-    "--storage-state=${HOME}/.playwright-auth/admin.json"
+    "--storage-state=${HOME}/.playwright-auth/mysession.json"
   ]
 }
 ```
@@ -231,10 +231,10 @@ For CI/CD environments, use encrypted secrets:
 
 ```bash
 # Encrypt auth file
-gpg -c admin-auth.json
+gpg -c mysession-auth.json
 
 # In CI, decrypt before use
-gpg -d admin-auth.json.gpg > admin-auth.json
+gpg -d mysession-auth.json.gpg > mysession-auth.json
 ```
 
 ## Troubleshooting
@@ -266,6 +266,6 @@ await browser_navigate({ url: "https://app.example.com/page2" });
 
 ## Related Documentation
 
-- **Multi-user setup**: See `multi-user-setup.md` for configuring multiple user instances
+- **Multi-session setup**: See `multi-session-setup.md` for configuring multiple session instances
 - **Playwright Authentication Docs**: https://playwright.dev/docs/auth
 - **MCP Protocol**: https://modelcontextprotocol.io

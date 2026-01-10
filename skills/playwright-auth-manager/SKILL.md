@@ -1,6 +1,6 @@
 ---
 name: playwright-auth-manager
-description: Manage browser authentication state for Playwright MCP Server. Use when working with websites requiring login, setting up Playwright authentication, managing multiple user accounts, or when browser automation needs preserved login sessions. Handles authentication file creation, multi-user configuration, and MCP server setup with saved credentials.
+description: Manage browser authentication state for Playwright MCP Server. Use when working with websites requiring login, setting up Playwright authentication, managing multiple authentication sessions, or when browser automation needs preserved login sessions. Handles authentication file creation, multi-session configuration, and MCP server setup with saved credentials.
 ---
 
 # Playwright Auth Manager
@@ -16,19 +16,19 @@ Manage browser authentication state for Playwright MCP, enabling automated brows
    cd <project-directory>
    node <path-to-skill>/scripts/save-auth-state.js \
      --url https://app.example.com/login \
-     --user admin
+     --user myaccount
    ```
 
 2. **Configure MCP Server** with authentication:
    ```json
    {
      "mcpServers": {
-       "playwright-admin": {
+       "playwright-myaccount": {
          "command": "npx",
          "args": [
            "@playwright/mcp@latest",
            "--isolated",
-           "--storage-state=./admin-auth.json"
+           "--storage-state=./myaccount-auth.json"
          ]
        }
      }
@@ -57,7 +57,7 @@ await browser_snapshot();
 ```
 User needs browser automation with login
     ↓
-Check if auth file exists for this user/site
+Check if auth file exists for this session
     ↓
     ├─ NO → Guide to save auth state (see "Saving Authentication State")
     │        ↓
@@ -65,12 +65,12 @@ Check if auth file exists for this user/site
     │        ↓
     │        Configure MCP Server (see "Configuring MCP Server")
     │
-    └─ YES → Check if multiple users needed
+    └─ YES → Check if multiple sessions needed
              ↓
              ├─ NO → Use single MCP instance with one auth file
              │
              └─ YES → Configure multiple MCP instances
-                      (see references/multi-user-setup.md)
+                      (see references/multi-session-setup.md)
 ```
 
 ## Saving Authentication State
@@ -86,18 +86,18 @@ node <path-to-skill>/scripts/save-auth-state.js \
   --output ./auth.json
 ```
 
-**With user identifier (recommended for multiple users):**
+**With session name (recommended for multiple sessions):**
 ```bash
 node <path-to-skill>/scripts/save-auth-state.js \
   --url https://app.example.com/login \
-  --user admin
-# Creates: admin-auth.json
+  --user myproject
+# Creates: myproject-auth.json
 ```
 
 **Options:**
 - `--url <url>`: Starting URL (login page)
 - `--output <file>`: Output filename (default: `./auth.json`)
-- `--user <name>`: User identifier (creates `<name>-auth.json`)
+- `--user <name>`: Session name for the auth file (creates `<name>-auth.json`)
 
 ### Manual Process
 
@@ -116,9 +116,9 @@ Store auth files in a dedicated directory:
 ```
 project/
 ├── .playwright-auth/
-│   ├── admin-auth.json
-│   ├── user-auth.json
-│   └── guest-auth.json
+│   ├── account1-auth.json
+│   ├── account2-auth.json
+│   └── account3-auth.json
 ├── .gitignore  (must include .playwright-auth/)
 └── ...
 ```
@@ -126,14 +126,14 @@ project/
 Or use a centralized location:
 ```
 ~/.playwright-auth/
-├── project1-admin.json
-├── project1-user.json
-└── project2-admin.json
+├── project1-session1.json
+├── project1-session2.json
+└── project2-session1.json
 ```
 
 ## Configuring MCP Server
 
-### Single User Configuration
+### Single Session Configuration
 
 ```json
 {
@@ -150,41 +150,41 @@ Or use a centralized location:
 }
 ```
 
-### Multiple User Configuration
+### Multiple Session Configuration
 
-For projects requiring multiple user accounts, configure separate MCP instances. **See `references/multi-user-setup.md` for complete guide.**
+For projects requiring multiple authentication sessions (e.g., different accounts, different projects), configure separate MCP instances. **See `references/multi-session-setup.md` for complete guide.**
 
 Quick example:
 ```json
 {
   "mcpServers": {
-    "playwright-admin": {
+    "playwright-account1": {
       "command": "npx",
       "args": [
         "@playwright/mcp@latest",
         "--isolated",
-        "--storage-state=./.playwright-auth/admin-auth.json"
+        "--storage-state=./.playwright-auth/account1-auth.json"
       ]
     },
-    "playwright-user": {
+    "playwright-account2": {
       "command": "npx",
       "args": [
         "@playwright/mcp@latest",
         "--isolated",
-        "--storage-state=./.playwright-auth/user-auth.json"
+        "--storage-state=./.playwright-auth/account2-auth.json"
       ]
     }
   }
 }
 ```
 
-Switching between users:
+Switching between sessions:
 ```javascript
-// Use admin credentials
-await mcp__playwright-admin__browser_navigate({ url: "..." });
+// Use first account
+await mcp__playwright-account1__browser_navigate({ url: "..." });
 
-// Switch to regular user
-await mcp__playwright-user__browser_navigate({ url: "..." });
+// Switch to second account
+await mcp__playwright-account2__browser_navigate({ url: "..." });
 ```
 
 ## Ensuring Git Ignore
@@ -225,7 +225,7 @@ When authentication expires or needs updating:
 
 1. **Re-run the save script** with the same parameters:
    ```bash
-   node scripts/save-auth-state.js --user admin --url https://app.example.com/login
+   node scripts/save-auth-state.js --user mysession --url https://app.example.com/login
    ```
 
 2. **Restart MCP server** (unless using `--save-session` option)
@@ -253,9 +253,9 @@ To automatically save authentication changes during the session:
 
 With this option, any authentication changes (new cookies, localStorage updates) are automatically saved.
 
-### Dynamic User Switching
+### Dynamic Session Switching
 
-For runtime user switching within a single MCP instance, see the `browser_run_code` technique in `references/usage-guide.md`.
+For runtime session switching within a single MCP instance, see the `browser_run_code` technique in `references/usage-guide.md`.
 
 ### CI/CD Integration
 
@@ -263,12 +263,12 @@ For automated testing environments:
 
 1. **Encrypt auth files** before committing:
    ```bash
-   gpg -c admin-auth.json
+   gpg -c myauth.json
    ```
 
 2. **Decrypt in CI pipeline**:
    ```bash
-   gpg -d admin-auth.json.gpg > admin-auth.json
+   gpg -d myauth.json.gpg > myauth.json
    ```
 
 3. **Use in MCP configuration** with environment variables:
@@ -276,7 +276,7 @@ For automated testing environments:
    {
      "args": [
        "@playwright/mcp@latest",
-       "--storage-state=${CI_PROJECT_DIR}/admin-auth.json",
+       "--storage-state=${CI_PROJECT_DIR}/myauth.json",
        "--headless"
      ]
    }
@@ -321,7 +321,7 @@ Some websites use short-lived sessions. Solutions:
 
 ### references/
 
-- **multi-user-setup.md**: Complete guide for configuring multiple Playwright MCP instances with separate user accounts. Read when managing multiple users.
+- **multi-session-setup.md**: Complete guide for configuring multiple Playwright MCP instances with separate authentication sessions. Read when managing multiple sessions.
 - **usage-guide.md**: Comprehensive Playwright MCP authentication documentation including storage formats, configuration options, security best practices, and advanced workflows.
 
 ### assets/

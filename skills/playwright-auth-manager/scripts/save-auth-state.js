@@ -5,18 +5,21 @@
  * Saves browser authentication state (cookies, localStorage) to a JSON file
  * for use with Playwright MCP Server.
  *
+ * This script does NOT manage user permissions or access control. It simply
+ * saves the authentication state from whatever account you log in to.
+ *
  * Usage:
  *   node save-auth-state.js [options]
  *
  * Options:
  *   --url <url>       Starting URL (default: https://example.com)
  *   --output <file>   Output filename (default: ./auth.json)
- *   --user <name>     User identifier for filename (creates <name>-auth.json)
+ *   --user <name>     Session name for the auth file (creates <name>-auth.json)
  *
  * Examples:
  *   node save-auth-state.js --url https://app.example.com/login
- *   node save-auth-state.js --user admin --url https://admin.example.com
- *   node save-auth-state.js --output ./auth/user1.json
+ *   node save-auth-state.js --user myproject --url https://app.example.com
+ *   node save-auth-state.js --output ./auth/session1.json
  */
 
 const fs = require('fs');
@@ -48,18 +51,21 @@ function parseArgs() {
         console.log(`
 Playwright Authentication State Saver
 
+This script saves the authentication state from whatever account you log in to.
+It does NOT manage user permissions or access control.
+
 Usage:
   node save-auth-state.js [options]
 
 Options:
   --url <url>       Starting URL (default: https://example.com)
   --output <file>   Output filename (default: ./auth.json)
-  --user <name>     User identifier for filename (creates <name>-auth.json)
+  --user <name>     Session name for the auth file (creates <name>-auth.json)
 
 Examples:
   node save-auth-state.js --url https://app.example.com/login
-  node save-auth-state.js --user admin --url https://admin.example.com
-  node save-auth-state.js --output ./auth/user1.json
+  node save-auth-state.js --user myproject --url https://app.example.com
+  node save-auth-state.js --output ./auth/session1.json
         `);
         process.exit(0);
     }
@@ -186,12 +192,13 @@ async function saveAuthState() {
 
     await browser.close();
 
-    console.log('\n🎉 Done! You can now use this auth file with Playwright MCP.');
+    console.log('\n🎉 Done! Authentication state saved successfully.');
     console.log('\n💡 Next steps:');
     console.log('   1. Add to MCP config: --storage-state=' + authStatePath);
     console.log('   2. Ensure auth file is in .gitignore');
     if (options.user) {
       console.log(`   3. Configure MCP Server as: playwright-${options.user}`);
+      console.log(`      (The name "${options.user}" is just a label for this session)`);
     }
 
   } catch (error) {
