@@ -2,10 +2,8 @@
   "name": "dev-cycle",
   "version": "1.0.0",
   "description": "Automated development-evaluation feedback loop system",
-  "commands": {
-    "autoDiscover": true
+  "author": {
+    "name": "kan"
   },
-  "agents": {
-    "autoDiscover": true
-  }
+  "license": "MIT"
 }
