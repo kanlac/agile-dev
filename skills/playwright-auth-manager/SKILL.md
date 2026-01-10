@@ -130,9 +130,9 @@ When the user needs to save authentication state, provide them with a complete c
    ```bash
    node /path/to/skills/playwright-auth-manager/scripts/save-auth-state.js \
      --url https://app.example.com/login \
-     --user jack
+     --user user-1
    ```
-   This creates: `jack-auth.json`
+   This creates: `user-1-auth.json`
 
 ### Script Parameters
 

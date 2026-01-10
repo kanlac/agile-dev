@@ -135,17 +135,30 @@ async function saveAuthState() {
     try {
       browser = await chromium.launch({
         headless: false,
-        channel: 'chrome'
+        channel: 'chrome',
+        args: [
+          '--disable-blink-features=AutomationControlled',  // 隐藏自动化标记
+          '--disable-dev-shm-usage',
+          '--no-first-run',
+          '--no-default-browser-check'
+        ]
       });
     } catch (e) {
       // Fallback to default chromium
       console.log('⚠️  Chrome not found, using default Chromium');
       browser = await chromium.launch({
-        headless: false
+        headless: false,
+        args: [
+          '--disable-blink-features=AutomationControlled',
+          '--disable-dev-shm-usage'
+        ]
       });
     }
 
-    const context = await browser.newContext();
+    const context = await browser.newContext({
+      // 隐藏 webdriver 标记
+      userAgent: undefined,  // 使用默认 UA，不添加 HeadlessChrome 标记
+    });
     const page = await context.newPage();
 
     // Navigate to the starting URL
@@ -176,10 +189,23 @@ async function saveAuthState() {
     const authStatePath = path.resolve(options.output);
     await context.storageState({ path: authStatePath });
 
+    // Fix sameSite attribute for better compatibility
+    const authState = JSON.parse(fs.readFileSync(authStatePath, 'utf8'));
+    if (authState.cookies) {
+      authState.cookies = authState.cookies.map(cookie => {
+        // Change Strict to Lax for better compatibility with Playwright
+        if (cookie.sameSite === 'Strict') {
+          console.log(`   ⚠️  Fixing cookie "${cookie.name}" sameSite: Strict → Lax`);
+          cookie.sameSite = 'Lax';
+        }
+        return cookie;
+      });
+      fs.writeFileSync(authStatePath, JSON.stringify(authState, null, 2));
+    }
+
     console.log(`\n✅ Authentication state saved to: ${authStatePath}`);
 
     // Show what was saved
-    const authState = JSON.parse(fs.readFileSync(authStatePath, 'utf8'));
     const cookieCount = authState.cookies ? authState.cookies.length : 0;
     const originCount = authState.origins ? authState.origins.length : 0;
 
