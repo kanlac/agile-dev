@@ -7,6 +7,10 @@ description: Manage browser authentication state for Playwright MCP Server. Use 
 
 Manage browser authentication state for Playwright MCP, enabling automated browser sessions with preserved login credentials.
 
+**Use Case**: This skill is designed for **local development and testing**. It helps you automate browser interactions that require login during development, debugging, and local testing workflows.
+
+**Not for Production**: This tool saves real authentication credentials and is meant for local use only. It should not be used in production environments.
+
 ## Setup
 
 Before using this skill, run the setup script to ensure Playwright is installed:
@@ -272,31 +276,6 @@ With this option, any authentication changes (new cookies, localStorage updates)
 ### Dynamic Session Switching
 
 For runtime session switching within a single MCP instance, see the `browser_run_code` technique in `references/usage-guide.md`.
-
-### CI/CD Integration
-
-For automated testing environments:
-
-1. **Encrypt auth files** before committing:
-   ```bash
-   gpg -c myauth.json
-   ```
-
-2. **Decrypt in CI pipeline**:
-   ```bash
-   gpg -d myauth.json.gpg > myauth.json
-   ```
-
-3. **Use in MCP configuration** with environment variables:
-   ```json
-   {
-     "args": [
-       "@playwright/mcp@latest",
-       "--storage-state=${CI_PROJECT_DIR}/myauth.json",
-       "--headless"
-     ]
-   }
-   ```
 
 ## Troubleshooting
 

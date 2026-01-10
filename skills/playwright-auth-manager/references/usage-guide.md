@@ -1,5 +1,7 @@
 # Playwright MCP Usage Guide
 
+**Purpose**: This guide covers local development and testing workflows using Playwright MCP authentication. All techniques described here are intended for local use only.
+
 ## Authentication State Files
 
 Playwright MCP uses JSON files to store authentication state, containing:
@@ -180,6 +182,8 @@ await browser_navigate({ url: "https://app.example.com" });
 
 ## Security Best Practices
 
+**Important**: These authentication files contain real credentials and are intended for local development only. Never commit them to version control or deploy them to any server.
+
 ### 1. Git Ignore Configuration
 
 Always exclude authentication files from version control:
@@ -223,18 +227,6 @@ Reference with absolute paths or environment variables:
     "--storage-state=${HOME}/.playwright-auth/mysession.json"
   ]
 }
-```
-
-### 4. Secrets Management
-
-For CI/CD environments, use encrypted secrets:
-
-```bash
-# Encrypt auth file
-gpg -c mysession-auth.json
-
-# In CI, decrypt before use
-gpg -d mysession-auth.json.gpg > mysession-auth.json
 ```
 
 ## Troubleshooting
