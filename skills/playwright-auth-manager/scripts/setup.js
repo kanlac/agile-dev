@@ -46,6 +46,23 @@ async function setup() {
   console.log(`Skill directory: ${SKILL_ROOT}`);
   console.log('(Dependencies will be installed here, not in your project)\n');
 
+  // Step 0: Ensure package.json exists
+  const packageJsonPath = path.join(SKILL_ROOT, 'package.json');
+  if (!fs.existsSync(packageJsonPath)) {
+    log('Creating package.json...', 'working');
+    const packageJson = {
+      name: 'playwright-auth-manager',
+      version: '1.0.0',
+      private: true,
+      description: 'Playwright authentication state manager for MCP Server',
+      dependencies: {
+        playwright: '^1.40.0'
+      }
+    };
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+    log('package.json created', 'success');
+  }
+
   // Step 1: Install npm dependencies in skill directory
   log('Checking Playwright installation...', 'working');
 
