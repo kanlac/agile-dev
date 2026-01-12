@@ -11,40 +11,26 @@ Manage browser authentication state for Playwright MCP, enabling automated brows
 
 **Not for Production**: This tool saves real authentication credentials and is meant for local use only. Never use it in production environments.
 
-## Setup
-
-### Initial Setup for Coding Agent
-
-Before using this skill, ensure Playwright is installed by running the setup script:
-
-```bash
-node <path-to-skill>/scripts/setup.js
-```
-
-The setup script will:
-- Install Playwright **in the skill directory** (not the user's project)
-- Install Chromium browser if needed
-- Do nothing if everything is already installed (safe to run multiple times)
-
-**Important**: Dependencies are installed in the skill's own `node_modules/` directory, keeping the user's project clean. This design ensures:
-- No pollution of project's `package.json` or `node_modules/`
-- No version conflicts with project dependencies
-- Works regardless of the user's project type (Python, Go, etc.)
-
-**Note**: The script handles everything automatically. No need to read its content.
-
 ## Quick Start
 
 ### Typical Workflow for Coding Agent
 
 When helping a user set up authentication for the first time:
 
-1. **Guide user to save authentication state**:
+1. **Run setup script** to install dependencies (safe to run multiple times):
+   ```bash
+   node <path-to-skill>/scripts/setup.js
+   ```
+   - Installs Playwright in the skill directory (not user's project)
+   - Installs Chromium browser if needed
+   - Creates `package.json` if missing
+
+2. **Guide user to save authentication state**:
    - Provide the command with appropriate URL and session name
    - Instruct user to run it in a new terminal window
    - See [Saving Authentication State](#saving-authentication-state) for details
 
-2. **Configure MCP Server** in the user's MCP configuration file:
+3. **Configure MCP Server** in the user's MCP configuration file:
    ```json
    {
      "mcpServers": {
@@ -60,9 +46,9 @@ When helping a user set up authentication for the first time:
    }
    ```
 
-3. **Verify .gitignore** includes auth file patterns (see [Ensuring Git Ignore](#ensuring-git-ignore))
+4. **Verify .gitignore** includes auth file patterns (see [Ensuring Git Ignore](#ensuring-git-ignore))
 
-4. **Instruct user to restart** their MCP client to load the authenticated session
+5. **Instruct user to restart** their MCP client to load the authenticated session
 
 ### Checking Authentication Status
 
@@ -82,6 +68,8 @@ await browser_snapshot();
 
 ```
 User needs browser automation with login
+    ↓
+Run setup script (node scripts/setup.js)
     ↓
 Check if auth file exists for this session
     ↓
@@ -342,8 +330,8 @@ Some websites use short-lived sessions. Suggest:
 
 ### scripts/
 
-- **setup.js**: Initial setup script that installs Playwright in the skill directory (not the user's project). Run this first before using other scripts. Safe to run multiple times.
-- **save-auth-state.js**: Interactive script to capture browser authentication state. Opens a browser with anti-detection flags (can bypass Google login), waits for manual login (user presses Enter when ready), and saves cookies/localStorage to JSON. **This script must be run by the user in a separate terminal window** - provide the command to the user but do not attempt to run it yourself.
+- **setup.js**: Setup script that installs Playwright in the skill directory (not the user's project). Creates `package.json` if missing, installs dependencies, and sets up Chromium browser. **Run this script first before using save-auth-state.js**. Safe to run multiple times.
+- **save-auth-state.js**: Interactive script to capture browser authentication state. **Ensure setup.js has been executed first** to install Playwright dependencies. Opens a browser with anti-detection flags (can bypass Google login), waits for user login (user presses Enter when ready), and saves cookies/localStorage to JSON. **This script must be run by the user in a separate terminal window** - provide the command to the user but do not attempt to run it yourself.
 
 ### references/
 
