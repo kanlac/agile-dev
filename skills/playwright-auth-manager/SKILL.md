@@ -15,40 +15,18 @@ Manage browser authentication state for Playwright MCP, enabling automated brows
 
 ### Typical Workflow for Coding Agent
 
-When helping a user set up authentication for the first time:
-
 1. **Run setup script** to install dependencies (safe to run multiple times):
    ```bash
    node <path-to-skill>/scripts/setup.js
    ```
-   - Installs Playwright in the skill directory (not user's project)
-   - Installs Chromium browser if needed
-   - Creates `package.json` if missing
 
-2. **Guide user to save authentication state**:
-   - Provide the command with appropriate URL and session name
-   - Instruct user to run it in a new terminal window
-   - See [Saving Authentication State](#saving-authentication-state) for details
+2. **Provide auth capture command** to user - they must run it manually in a separate terminal. See [Saving Authentication State](#saving-authentication-state).
 
-3. **Configure MCP Server** in the user's MCP configuration file:
-   ```json
-   {
-     "mcpServers": {
-       "playwright-jack": {
-         "command": "npx",
-         "args": [
-           "@playwright/mcp@latest",
-           "--isolated",
-           "--storage-state=./jack-auth.json"
-         ]
-       }
-     }
-   }
-   ```
+3. **Configure MCP Server** in project's `.mcp.json` or client-specific config. See [references/how-to-install-mcp.md](references/how-to-install-mcp.md).
 
-4. **Verify .gitignore** includes auth file patterns (see [Ensuring Git Ignore](#ensuring-git-ignore))
+4. **Add `.playwright-auth/` to .gitignore**. See [Ensuring Git Ignore](#ensuring-git-ignore).
 
-5. **Instruct user to restart** their MCP client to load the authenticated session
+5. **User must restart** MCP client to load the authenticated session.
 
 ### Checking Authentication Status
 
@@ -89,255 +67,123 @@ Check if auth file exists for this session
 
 ## Saving Authentication State
 
-### Instructions for Coding Agent
+**Critical**: The authentication capture script must be run **manually by the user in a separate terminal window**. It requires interactive browser login.
 
-**Critical**: The authentication script must be run **manually by the user in a separate terminal window**. Do not attempt to run this script yourself as it requires interactive user input.
+### Providing the Command
 
-### How to Guide the User
+Generate a complete command for the user:
 
-When the user needs to save authentication state, provide them with a complete command to run:
+```bash
+node /path/to/skills/playwright-auth-manager/scripts/save-auth-state.js \
+  --url <login-url> \
+  --domain <domain-identifier> \
+  --user <user-identifier>
+```
 
-1. **Generate the command** with these parameters:
-   - Full absolute path to `save-auth-state.js`
-   - `--url` with the login page URL
-   - `--user` with a descriptive session name (recommended) OR `--output` for custom path
+**Example**:
+```bash
+node /path/to/skills/playwright-auth-manager/scripts/save-auth-state.js \
+  --url https://localhost:3000/login \
+  --domain localhost3000 \
+  --user jack
+```
 
-2. **Instruct the user** with clear steps:
-   ```
-   Please run the following command in a new terminal window:
-
-   [paste the command here]
-
-   Steps:
-   1. Open a new terminal window
-   2. Copy and paste the command above
-   3. Press Enter to run it
-   4. Log in when the browser opens
-   5. Press Enter in the terminal after logging in
-
-   This will create: [filename].auth.json
-   ```
-
-3. **Example command format**:
-   ```bash
-   node /path/to/skills/playwright-auth-manager/scripts/save-auth-state.js \
-     --url https://app.example.com/login \
-     --user user-1
-   ```
-   This creates: `user-1-auth.json`
+This creates: `.playwright-auth/localhost3000-jack.json`
 
 ### Script Parameters
 
-- `--url <url>`: Starting URL (login page) - **required**
-- `--output <file>`: Output filename (default: `./auth.json`)
-- `--user <name>`: Session name for the auth file (creates `<name>-auth.json`) - **recommended**
+- `--url <url>`: Login page URL (required)
+- `--domain <name>`: Domain identifier like `localhost3000`, `github` (required)
+- `--user <name>`: User identifier like `jack`, `alice` (required)
+- `--output <file>`: Custom output path (optional, overrides standard naming)
 
-**Note**: Recommend using `--user` as it creates clearly-named files. The user controls the file name through this parameter.
-
-### Script Behavior (for Reference)
-
-The script will:
-1. Open a browser window
-2. Navigate to the specified URL
-3. Wait for the user to complete login manually
-4. Prompt the user to press Enter when ready
-5. Save cookies and localStorage to JSON file
-6. Display saved data summary
-7. Close the browser
-
-### Recommended Directory Structure
-
-Store auth files in a dedicated directory:
-
-```
-project/
-├── .playwright-auth/
-│   ├── account1-auth.json
-│   ├── account2-auth.json
-│   └── account3-auth.json
-├── .gitignore  (must include .playwright-auth/)
-└── ...
-```
-
-Or use a centralized location:
-```
-~/.playwright-auth/
-├── project1-session1.json
-├── project1-session2.json
-└── project2-session1.json
-```
+**Naming Convention**: Files are saved as `.playwright-auth/{domain}-{user}.json`, matching the MCP server pattern `playwright-{domain}-{user}`.
 
 ## Configuring MCP Server
 
-### Single Session Configuration
+Add MCP server configuration to the project's config file (`.mcp.json`, `opencode.json`, etc.).
 
-```json
-{
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": [
-        "@playwright/mcp@latest",
-        "--isolated",
-        "--storage-state=/path/to/auth.json"
-      ]
-    }
-  }
-}
-```
+**See [references/how-to-install-mcp.md](references/how-to-install-mcp.md)** for complete configuration examples covering:
+- Different MCP clients (Claude Code, OpenCode, etc.)
+- Single and multiple session setup
+- Server naming conventions
+- Path configuration
 
-### Multiple Session Configuration
-
-For projects requiring multiple authentication sessions (e.g., different accounts, different projects), configure separate MCP instances. **See `references/multi-session-setup.md` for complete guide.**
-
-Quick example:
-```json
-{
-  "mcpServers": {
-    "playwright-account1": {
-      "command": "npx",
-      "args": [
-        "@playwright/mcp@latest",
-        "--isolated",
-        "--storage-state=./.playwright-auth/account1-auth.json"
-      ]
-    },
-    "playwright-account2": {
-      "command": "npx",
-      "args": [
-        "@playwright/mcp@latest",
-        "--isolated",
-        "--storage-state=./.playwright-auth/account2-auth.json"
-      ]
-    }
-  }
-}
-```
-
-Switching between sessions:
-```javascript
-// Use first account
-await mcp__playwright-account1__browser_navigate({ url: "..." });
-
-// Switch to second account
-await mcp__playwright-account2__browser_navigate({ url: "..." });
-```
+**See [references/multi-session-setup.md](references/multi-session-setup.md)** for multiple session patterns.
 
 ## Ensuring Git Ignore
 
 **Critical: Always exclude auth files from version control.**
 
-### Automatic Check
-
-The `save-auth-state.js` script automatically checks .gitignore and warns if auth files are not excluded.
-
-### Manual Setup
-
-Add these patterns to `.gitignore`:
+Add to `.gitignore`:
 
 ```gitignore
-# Playwright authentication files
-*.auth.json
-auth.json
 .playwright-auth/
 ```
 
-Or copy the complete template:
-```bash
-cat <path-to-skill>/assets/gitignore-template >> .gitignore
-```
-
-### Verification
-
-After adding to .gitignore:
-```bash
-git status
-# Auth files should NOT appear in untracked files
-```
+The `save-auth-state.js` script will check and warn if missing.
 
 ## Refreshing Authentication
 
-When authentication expires or needs updating, guide the user to:
+When authentication expires:
 
-1. **Re-run the save script** with the same parameters used originally:
+1. **Provide the save command** to user (same parameters as initial setup):
    ```bash
-   node scripts/save-auth-state.js --user jack --url https://app.example.com/login
+   node scripts/save-auth-state.js --domain localhost3000 --user jack --url https://localhost:3000/login
    ```
 
-2. **Restart MCP server** (unless the configuration uses `--save-session` option)
+2. **User must restart MCP client** (unless config uses `--save-session`)
 
-3. **Verify new authentication** by accessing a protected page
+3. **Verify** by navigating to a protected page
 
 ## Advanced Usage
 
 ### Auto-Save Session Changes
 
-To automatically save authentication changes during the session:
-
-```json
-{
-  "playwright": {
-    "args": [
-      "@playwright/mcp@latest",
-      "--isolated",
-      "--storage-state=./auth.json",
-      "--save-session"
-    ]
-  }
-}
-```
-
-With this option, any authentication changes (new cookies, localStorage updates) are automatically saved.
+Add `--save-session` flag to MCP config to auto-save auth changes. See [references/how-to-install-mcp.md](references/how-to-install-mcp.md).
 
 ### Dynamic Session Switching
 
-For runtime session switching within a single MCP instance, see the `browser_run_code` technique in `references/usage-guide.md`.
+For runtime session switching, see `browser_run_code` technique in [references/usage-guide.md](references/usage-guide.md).
 
 ## Troubleshooting
 
-### "Authentication not working"
+### Authentication Not Working
 
-When authentication fails, check:
-1. Verify auth file exists at the configured path
-2. Check auth file is not empty (should contain cookies array)
-3. Ensure cookie domains match the target website
-4. Regenerate auth file if cookies have expired
+Check:
+1. Auth file exists at configured path
+2. File contains cookies array
+3. Cookie domains match target website
+4. Cookies not expired - regenerate if needed
 
-### "Script fails: Executable doesn't exist"
+### Script Fails: Executable Doesn't Exist
 
-Guide user to install Playwright browsers:
+Install Playwright browsers:
 ```bash
 npx playwright install chromium
 ```
 
-### "Auth file appears in git status"
+### Auth File in Git Status
 
-Help user fix this:
-1. Add patterns to .gitignore (see [Ensuring Git Ignore](#ensuring-git-ignore))
-2. Remove from git cache if already tracked:
-   ```bash
-   git rm --cached auth.json
-   ```
+1. Add `.playwright-auth/` to .gitignore
+2. If already tracked: `git rm --cached .playwright-auth/*`
 
-### "Session expires too quickly"
+### Session Expires Quickly
 
-Some websites use short-lived sessions. Suggest:
+Options:
 - Regenerate auth file before each use
-- Use `--save-session` option to auto-update
-- Implement periodic auth refresh in the workflow
+- Use `--save-session` in MCP config
+- Implement periodic refresh in workflow
 
 ## Resources
 
 ### scripts/
 
-- **setup.js**: Setup script that installs Playwright in the skill directory (not the user's project). Creates `package.json` if missing, installs dependencies, and sets up Chromium browser. **Run this script first before using save-auth-state.js**. Safe to run multiple times.
-- **save-auth-state.js**: Interactive script to capture browser authentication state. **Ensure setup.js has been executed first** to install Playwright dependencies. Opens a browser with anti-detection flags (can bypass Google login), waits for user login (user presses Enter when ready), and saves cookies/localStorage to JSON. **This script must be run by the user in a separate terminal window** - provide the command to the user but do not attempt to run it yourself.
+- **setup.js**: Installs Playwright in skill directory. Run first. Safe to run multiple times.
+- **save-auth-state.js**: Captures browser auth state. **User must run manually** in separate terminal.
 
 ### references/
 
-- **multi-session-setup.md**: Complete guide for configuring multiple Playwright MCP instances with separate authentication sessions. Read when managing multiple sessions.
-- **usage-guide.md**: Comprehensive Playwright MCP authentication documentation including storage formats, configuration options, security best practices, and advanced workflows.
-
-### assets/
-
-- **gitignore-template**: Template .gitignore entries for Playwright auth files. Copy to project .gitignore to prevent committing sensitive auth data.
+- **how-to-install-mcp.md**: Complete MCP configuration guide for all clients.
+- **multi-session-setup.md**: Multiple session configuration patterns.
+- **usage-guide.md**: Comprehensive usage documentation and best practices.

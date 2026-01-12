@@ -42,22 +42,11 @@ Playwright MCP uses JSON files to store authentication state, containing:
 
 ## MCP Configuration Options
 
+For complete configuration instructions, see **[how-to-install-mcp.md](./how-to-install-mcp.md)**.
+
 ### Option 1: Isolated Context + Storage State (Recommended)
 
-Clean browser environment with only authentication data loaded:
-
-```json
-{
-  "playwright": {
-    "command": "npx",
-    "args": [
-      "@playwright/mcp@latest",
-      "--isolated",
-      "--storage-state=/path/to/auth.json"
-    ]
-  }
-}
-```
+Clean browser environment with only authentication data loaded.
 
 **Characteristics:**
 - ✅ Small file size (5-50KB)
@@ -69,19 +58,7 @@ Clean browser environment with only authentication data loaded:
 
 ### Option 2: Persistent User Data Directory
 
-Complete browser profile with all data:
-
-```json
-{
-  "playwright": {
-    "command": "npx",
-    "args": [
-      "@playwright/mcp@latest",
-      "--user-data-dir=/path/to/profile"
-    ]
-  }
-}
-```
+Complete browser profile with all data.
 
 **Characteristics:**
 - ✅ Complete browser experience
@@ -93,21 +70,7 @@ Complete browser profile with all data:
 
 ### Option 3: Save Session
 
-Automatically save authentication state after each session:
-
-```json
-{
-  "playwright": {
-    "command": "npx",
-    "args": [
-      "@playwright/mcp@latest",
-      "--isolated",
-      "--storage-state=/path/to/auth.json",
-      "--save-session"
-    ]
-  }
-}
-```
+Automatically save authentication state after each session by adding `--save-session` flag to your MCP configuration.
 
 ## Common Workflows
 
@@ -190,13 +153,7 @@ Always exclude authentication files from version control:
 
 ```gitignore
 # Playwright authentication files
-*.auth.json
-auth.json
 .playwright-auth/
-
-# User data directories
-playwright-profile/
-.playwright-user-data/
 ```
 
 ### 2. File Permissions
@@ -204,29 +161,21 @@ playwright-profile/
 Restrict access to authentication files:
 
 ```bash
-chmod 600 ~/.playwright-auth/*.json
+chmod 700 .playwright-auth
+chmod 600 .playwright-auth/*.json
 ```
 
-### 3. Centralized Storage
+### 3. Standardized Directory Structure
 
-Store auth files in a secure, centralized location:
+Store auth files in the project's `.playwright-auth/` directory using the `{domain}-{user}.json` naming convention:
 
 ```
-~/.playwright-auth/
-├── project1-session1.json
-├── project1-session2.json
-└── project2-session1.json
-```
-
-Reference with absolute paths or environment variables:
-
-```json
-{
-  "args": [
-    "@playwright/mcp@latest",
-    "--storage-state=${HOME}/.playwright-auth/mysession.json"
-  ]
-}
+project/
+├── .playwright-auth/
+│   ├── localhost3000-jack.json
+│   ├── localhost3000-alice.json
+│   └── github-bob.json
+└── .gitignore
 ```
 
 ## Troubleshooting

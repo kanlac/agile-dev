@@ -12,14 +12,15 @@
  *   node save-auth-state.js [options]
  *
  * Options:
- *   --url <url>       Starting URL (default: https://example.com)
- *   --output <file>   Output filename (default: ./auth.json)
- *   --user <name>     Session name for the auth file (creates <name>-auth.json)
+ *   --url <url>       Starting URL (required)
+ *   --domain <name>   Domain identifier (e.g., localhost3000, github) (required)
+ *   --user <name>     User/session identifier (e.g., jack, alice) (required)
+ *   --output <file>   Custom output path (optional, overrides domain/user pattern)
  *
  * Examples:
- *   node save-auth-state.js --url https://app.example.com/login
- *   node save-auth-state.js --user myproject --url https://app.example.com
- *   node save-auth-state.js --output ./auth/session1.json
+ *   node save-auth-state.js --url https://localhost:3000/login --domain localhost3000 --user jack
+ *   node save-auth-state.js --url https://github.com/login --domain github --user alice
+ *   node save-auth-state.js --url https://app.example.com/login --output ./custom/path.json
  */
 
 const fs = require('fs');
@@ -33,9 +34,10 @@ const SKILL_ROOT = path.dirname(__dirname);
 function parseArgs() {
   const args = process.argv.slice(2);
   const options = {
-    url: 'https://example.com',
-    output: './auth.json',
-    user: null
+    url: null,
+    domain: null,
+    user: null,
+    output: null
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -43,11 +45,14 @@ function parseArgs() {
       case '--url':
         options.url = args[++i];
         break;
-      case '--output':
-        options.output = args[++i];
+      case '--domain':
+        options.domain = args[++i];
         break;
       case '--user':
         options.user = args[++i];
+        break;
+      case '--output':
+        options.output = args[++i];
         break;
       case '--help':
       case '-h':
@@ -61,57 +66,74 @@ Usage:
   node save-auth-state.js [options]
 
 Options:
-  --url <url>       Starting URL (default: https://example.com)
-  --output <file>   Output filename (default: ./auth.json)
-  --user <name>     Session name for the auth file (creates <name>-auth.json)
+  --url <url>       Starting URL (required)
+  --domain <name>   Domain identifier (e.g., localhost3000, github) (required unless --output is provided)
+  --user <name>     User/session identifier (e.g., jack, alice) (required unless --output is provided)
+  --output <file>   Custom output path (optional, overrides domain/user pattern)
 
 Examples:
-  node save-auth-state.js --url https://app.example.com/login
-  node save-auth-state.js --user myproject --url https://app.example.com
-  node save-auth-state.js --output ./auth/session1.json
+  node save-auth-state.js --url https://localhost:3000/login --domain localhost3000 --user jack
+  node save-auth-state.js --url https://github.com/login --domain github --user alice
+  node save-auth-state.js --url https://app.example.com/login --output ./custom/path.json
+
+Naming Convention:
+  When using --domain and --user, the file will be saved as:
+    .playwright-auth/{domain}-{user}.json
+  This matches the MCP server naming pattern: playwright-{domain}-{user}
         `);
         process.exit(0);
     }
   }
 
-  // If user is specified, use it to generate filename
-  if (options.user) {
-    options.output = `./${options.user}-auth.json`;
+  // Validate required parameters
+  if (!options.url) {
+    console.error('❌ Error: --url is required');
+    console.log('Usage: node save-auth-state.js --url <url> --domain <name> --user <name>');
+    console.log('Run with --help for more information');
+    process.exit(1);
+  }
+
+  // Generate output path
+  if (!options.output) {
+    if (!options.domain || !options.user) {
+      console.error('❌ Error: --domain and --user are required when --output is not provided');
+      console.log('Usage: node save-auth-state.js --url <url> --domain <name> --user <name>');
+      console.log('Run with --help for more information');
+      process.exit(1);
+    }
+    options.output = `./.playwright-auth/${options.domain}-${options.user}.json`;
   }
 
   return options;
 }
 
-// Check if file should be added to .gitignore
+// Check if .playwright-auth/ directory should be added to .gitignore
 function checkGitignore(authFilePath) {
   const gitignorePath = path.join(process.cwd(), '.gitignore');
-  const authFileName = path.basename(authFilePath);
 
   // Check if .gitignore exists
   if (!fs.existsSync(gitignorePath)) {
     console.log('\n⚠️  No .gitignore file found in current directory');
     console.log('💡 Consider creating one to avoid committing auth files:');
-    console.log(`   echo "*.auth.json" >> .gitignore`);
-    console.log(`   echo "auth.json" >> .gitignore`);
+    console.log(`   echo ".playwright-auth/" >> .gitignore`);
     return;
   }
 
-  // Check if auth files are already in .gitignore
+  // Check if .playwright-auth/ is already in .gitignore
   const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
   const lines = gitignoreContent.split('\n');
 
   const hasPattern = lines.some(line => {
     const trimmed = line.trim();
-    return trimmed === '*.auth.json' ||
-           trimmed === 'auth.json' ||
-           trimmed === authFileName;
+    return trimmed === '.playwright-auth/' ||
+           trimmed === '.playwright-auth' ||
+           trimmed === 'playwright-auth/';
   });
 
   if (!hasPattern) {
-    console.log('\n⚠️  Auth file pattern not found in .gitignore');
-    console.log('💡 Add these lines to .gitignore to avoid committing auth files:');
-    console.log(`   *.auth.json`);
-    console.log(`   auth.json`);
+    console.log('\n⚠️  .playwright-auth/ directory not found in .gitignore');
+    console.log('💡 Add this line to .gitignore to avoid committing auth files:');
+    console.log(`   .playwright-auth/`);
   }
 }
 
@@ -226,10 +248,10 @@ async function saveAuthState() {
     console.log('\n🎉 Done! Authentication state saved successfully.');
     console.log('\n💡 Next steps:');
     console.log('   1. Add to MCP config: --storage-state=' + authStatePath);
-    console.log('   2. Ensure auth file is in .gitignore');
-    if (options.user) {
-      console.log(`   3. Configure MCP Server as: playwright-${options.user}`);
-      console.log(`      (The name "${options.user}" is just a label for this session)`);
+    console.log('   2. Ensure .playwright-auth/ is in .gitignore');
+    if (options.domain && options.user) {
+      console.log(`   3. Configure MCP Server as: playwright-${options.domain}-${options.user}`);
+      console.log(`      Example MCP config: See references/how-to-install-mcp.md`);
     }
 
   } catch (error) {

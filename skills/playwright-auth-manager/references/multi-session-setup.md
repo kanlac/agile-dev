@@ -6,48 +6,37 @@ Configure multiple Playwright MCP Server instances to support different authenti
 
 ## Configuration Pattern
 
-```json
-{
-  "mcpServers": {
-    "playwright-<session-name>": {
-      "command": "npx",
-      "args": [
-        "@playwright/mcp@latest",
-        "--isolated",
-        "--storage-state=<path-to-auth-file>"
-      ]
-    }
-  }
-}
-```
+The MCP server naming convention follows: `playwright-{domain}-{user}`
+
+For detailed configuration examples, see **[how-to-install-mcp.md](./how-to-install-mcp.md)**.
 
 ## Complete Example
 
 ```json
 {
   "mcpServers": {
-    "playwright-work": {
+    "playwright-localhost3000-jack": {
       "command": "npx",
       "args": [
         "@playwright/mcp@latest",
         "--isolated",
-        "--storage-state=${HOME}/.playwright-auth/work-auth.json"
+        "--storage-state=./.playwright-auth/localhost3000-jack.json"
       ]
     },
-    "playwright-personal": {
+    "playwright-localhost3000-alice": {
       "command": "npx",
       "args": [
         "@playwright/mcp@latest",
         "--isolated",
-        "--storage-state=${HOME}/.playwright-auth/personal-auth.json"
+        "--storage-state=./.playwright-auth/localhost3000-alice.json"
       ]
     },
-    "playwright-project1": {
+    "playwright-github-bob": {
       "command": "npx",
       "args": [
         "@playwright/mcp@latest",
         "--isolated",
-        "--storage-state=${HOME}/.playwright-auth/project1-auth.json"
+        "--storage-state=./.playwright-auth/github-bob.json"
       ]
     }
   }
@@ -58,20 +47,23 @@ Configure multiple Playwright MCP Server instances to support different authenti
 
 When multiple instances are configured, MCP tools are prefixed with the server name:
 
-- `mcp__playwright-work__browser_navigate` - Work account session
-- `mcp__playwright-personal__browser_navigate` - Personal account session
-- `mcp__playwright-project1__browser_navigate` - Project1 account session
+- `mcp__playwright-localhost3000-jack__browser_navigate` - Jack's session on localhost:3000
+- `mcp__playwright-localhost3000-alice__browser_navigate` - Alice's session on localhost:3000
+- `mcp__playwright-github-bob__browser_navigate` - Bob's session on GitHub
 
 ## Switching Sessions
 
 To switch between sessions, simply use the appropriate MCP server instance:
 
 ```javascript
-// Use work account
-await mcp__playwright-work__browser_navigate({ url: "https://app.example.com" });
+// Use Jack's session on localhost:3000
+await mcp__playwright-localhost3000-jack__browser_navigate({ url: "https://localhost:3000" });
 
-// Switch to personal account
-await mcp__playwright-personal__browser_navigate({ url: "https://app.example.com" });
+// Switch to Alice's session on localhost:3000
+await mcp__playwright-localhost3000-alice__browser_navigate({ url: "https://localhost:3000" });
+
+// Use Bob's session on GitHub
+await mcp__playwright-github-bob__browser_navigate({ url: "https://github.com" });
 ```
 
 ## Recommended Directory Structure
@@ -79,21 +71,15 @@ await mcp__playwright-personal__browser_navigate({ url: "https://app.example.com
 ```
 project/
 ├── .playwright-auth/          # Auth files (add to .gitignore)
-│   ├── work-auth.json
-│   ├── personal-auth.json
-│   └── project1-auth.json
+│   ├── localhost3000-jack.json
+│   ├── localhost3000-alice.json
+│   └── github-bob.json
 └── .gitignore
 ```
 
-Or use a centralized location:
-
-```
-~/.playwright-auth/            # Shared across projects
-├── projectA-session1.json
-├── projectA-session2.json
-├── projectB-session1.json
-└── projectB-session2.json
-```
+**Naming Convention**: `{domain}-{user}.json` where:
+- `domain`: The target website/service (e.g., `localhost3000`, `github`, `xiaohongshu`)
+- `user`: The account identifier (e.g., `jack`, `alice`, `bob`)
 
 ## Benefits
 
